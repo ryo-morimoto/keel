@@ -2172,6 +2172,11 @@ async function runMain(cmd, opts = {}) {
   }
 }
 
+// src/index.ts
+import { readFileSync as readFileSync2 } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
 // src/commands/install.ts
 import os2 from "os";
 import path3 from "path";
@@ -5127,11 +5132,13 @@ async function resolvePluginSource() {
 }
 
 // src/index.ts
+var __dirname2 = dirname(fileURLToPath(import.meta.url));
+var pkg = JSON.parse(readFileSync2(join(__dirname2, "..", "package.json"), "utf-8"));
 var main = defineCommand({
   meta: {
     name: "keel-skill",
-    version: "0.2.0",
-    description: "Install keel agent skill for coding agents"
+    version: pkg.version,
+    description: pkg.description
   },
   subCommands: {
     install: () => install_default
