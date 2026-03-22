@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.3.0...keel-v0.3.1) (2026-03-22)
+
+
+### Bug Fixes
+
+* **cli:** read version from package.json instead of hardcoding ([156c7a4](https://github.com/ryo-morimoto/keel/commit/156c7a4d5d375cfabd6051eac1f69a27d390301f))
+
 ## [0.3.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.2.0...keel-v0.3.0) (2026-03-22)
 
 
