@@ -1,11 +1,19 @@
 {
   "name": "keel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Adaptive multi-agent orchestration — routes tasks to the right agents based on severity",
-  "author": { "name": "ryo-morimoto" },
+  "author": {
+    "name": "ryo-morimoto"
+  },
   "repository": "https://github.com/ryo-morimoto/keel",
   "license": "MIT",
-  "keywords": ["multi-agent", "orchestration", "codex", "cursor", "agent"],
+  "keywords": [
+    "multi-agent",
+    "orchestration",
+    "codex",
+    "cursor",
+    "agent"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json"
 }
