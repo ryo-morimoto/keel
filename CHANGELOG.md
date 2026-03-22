@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.3.0...keel-v0.3.1) (2026-03-22)
+
+
+### Bug Fixes
+
+* **ci:** correct setup-bun SHA pin and hide ci/test from changelog ([d70e883](https://github.com/ryo-morimoto/keel/commit/d70e883e02381d5fe2d0bc97ef0a3036c1f92dbe))
+
 ## [0.3.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.2.0...keel-v0.3.0) (2026-03-22)
 
 
