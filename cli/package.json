@@ -1,0 +1,26 @@
+{
+  "name": "keel-skill",
+  "version": "0.2.0",
+  "type": "module",
+  "bin": {
+    "keel-skill": "dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "description": "Install keel agent skill for any coding agent",
+  "repository": "https://github.com/ryo-morimoto/keel",
+  "homepage": "https://github.com/ryo-morimoto/keel",
+  "license": "MIT",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node --format esm --entry-naming [dir]/[name].mjs",
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "citty": "^0.1.6",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.0"
+  }
+}
