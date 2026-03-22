@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["relevant_files", "patterns", "constraints"],
+  "properties": {
+    "relevant_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "patterns": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

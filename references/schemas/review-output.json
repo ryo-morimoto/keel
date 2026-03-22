@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "required": ["verdict", "issues", "suggestions"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["approve", "revise"]
+    },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "suggestions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

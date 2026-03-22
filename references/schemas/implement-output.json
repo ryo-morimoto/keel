@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "required": ["changed_files", "summary"],
+  "properties": {
+    "changed_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
