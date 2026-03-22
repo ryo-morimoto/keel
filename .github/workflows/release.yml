@@ -73,11 +73,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: https://registry.npmjs.org
 
+      # Trusted Publishing: OIDC auth, no NPM_TOKEN needed
+      # Configure at npmjs.com → keel-skill → Settings → Trusted Publisher
+      #   Repository: ryo-morimoto/keel
+      #   Workflow:   release.yml
+      #   Environment: npm
       - name: Publish to npm
         working-directory: cli
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
