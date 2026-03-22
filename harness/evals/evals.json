@@ -1,0 +1,156 @@
+{
+  "skill_name": "keel",
+  "description": "Eval set for keel plugin hooks and skill behavior",
+  "evals": [
+    {
+      "id": 1,
+      "name": "session-start-new",
+      "type": "hook",
+      "hook_event": "SessionStart",
+      "script": "hooks/scripts/on-session-start.mjs",
+      "input": {
+        "session_id": "test-oa-session-001",
+        "source": "new"
+      },
+      "env": {
+        "CWD": "/tmp/keel-test-project"
+      },
+      "expected_output": "Hook exits 0 and creates session directory with state.json and memory.json",
+      "expectations": [
+        "Exit code is 0",
+        "A new session directory is created under the project state dir",
+        "state.json contains session_id, oa_session_id, status=running, empty phase_list",
+        "memory.json contains null user_task, empty completed_phases"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "session-start-resume-existing",
+      "type": "hook",
+      "hook_event": "SessionStart",
+      "script": "hooks/scripts/on-session-start.mjs",
+      "input": {
+        "session_id": "test-oa-session-002",
+        "source": "resume"
+      },
+      "env": {
+        "CWD": "/tmp/keel-test-project"
+      },
+      "setup": "Create an existing session with oa_session_id=test-oa-session-002",
+      "expected_output": "Hook exits 0 and updates oa_session_id on existing session",
+      "expectations": [
+        "Exit code is 0",
+        "No new session directory is created",
+        "Existing session's oa_session_id is updated"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "prompt-submit-first-prompt",
+      "type": "hook",
+      "hook_event": "UserPromptSubmit",
+      "script": "hooks/scripts/on-prompt-submit.mjs",
+      "input": {
+        "prompt": "Fix the login bug in auth.ts",
+        "session_id": "test-oa-session-001"
+      },
+      "env": {
+        "CWD": "/tmp/keel-test-project"
+      },
+      "setup": "Create a session with null user_task and empty phase_list",
+      "expected_output": "Hook writes user_task to memory and outputs context with pending_classification",
+      "expectations": [
+        "Exit code is 0",
+        "memory.json user_task is set to the prompt text",
+        "stdout JSON contains hookSpecificOutput with additionalContext",
+        "additionalContext contains 'pending_classification'",
+        "additionalContext contains keel.sh init-phases command"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "prompt-submit-mid-phase",
+      "type": "hook",
+      "hook_event": "UserPromptSubmit",
+      "script": "hooks/scripts/on-prompt-submit.mjs",
+      "input": {
+        "prompt": "looks good, continue",
+        "session_id": "test-oa-session-001"
+      },
+      "env": {
+        "CWD": "/tmp/keel-test-project"
+      },
+      "setup": "Create a session with severity=medium, phase_list=[investigate,plan,review_codex,implement_cc,verify], completed_phases=[investigate], user_task set",
+      "expected_output": "Hook outputs context showing current phase as 'plan' with relevant memory fields",
+      "expectations": [
+        "Exit code is 0",
+        "additionalContext contains 'Phase: plan'",
+        "additionalContext contains phase progression showing investigate as completed",
+        "Phase Data section includes user_task and investigation fields"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "prompt-submit-orphan-session",
+      "type": "hook",
+      "hook_event": "UserPromptSubmit",
+      "script": "hooks/scripts/on-prompt-submit.mjs",
+      "input": {
+        "prompt": "hello",
+        "session_id": "test-oa-session-new"
+      },
+      "env": {
+        "CWD": "/tmp/keel-test-project"
+      },
+      "setup": "Create a session with pending_choice=true and oa_session_id=test-oa-session-new",
+      "expected_output": "Hook outputs pending_choice context asking user to continue or start fresh",
+      "expectations": [
+        "Exit code is 0",
+        "additionalContext contains 'Active session found'",
+        "additionalContext contains clear-pending command option",
+        "additionalContext contains done command option for starting fresh"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "keel-sh-init-phases-medium",
+      "type": "script",
+      "command": "bash scripts/keel.sh init-phases {session_dir} medium",
+      "setup": "Create a session directory with state.json (empty phase_list) and memory.json",
+      "expected_output": "Phase list is set for medium severity",
+      "expectations": [
+        "Exit code is 0",
+        "state.json phase_list contains investigate, plan, review_codex, implement_cursor or implement_cc, verify",
+        "state.json severity is set to 'medium'"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "keel-sh-advance",
+      "type": "script",
+      "command": "bash scripts/keel.sh advance {session_dir} '{\"investigation\":{\"relevant_files\":[\"auth.ts\"],\"patterns\":[],\"constraints\":[]}}'",
+      "setup": "Create a session with phase_list=[investigate,plan,...], completed_phases=[], current phase=investigate",
+      "expected_output": "Phase advances: investigation merged into memory, investigate added to completed_phases",
+      "expectations": [
+        "Exit code is 0",
+        "memory.json investigation field is populated with the provided JSON",
+        "memory.json completed_phases includes 'investigate'",
+        "Next phase derivation would return 'plan'"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "keel-sh-jump",
+      "type": "script",
+      "command": "bash scripts/keel.sh jump {session_dir} plan review",
+      "setup": "Create a session with completed_phases=[investigate, plan, review_codex]",
+      "expected_output": "Jump removes plan and subsequent phases from completed_phases",
+      "expectations": [
+        "Exit code is 0",
+        "completed_phases no longer contains 'plan'",
+        "completed_phases no longer contains 'review_codex'",
+        "completed_phases still contains 'investigate'"
+      ]
+    }
+  ]
+}

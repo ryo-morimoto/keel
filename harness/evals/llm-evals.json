@@ -1,0 +1,41 @@
+{
+  "skill_name": "keel",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a '## Contributing' section at the end of README.md with the text 'Contributions welcome! Please open an issue first.'",
+      "expected_output": "Keel bootstraps, classifies as trivial, runs init-phases, then implements directly",
+      "files": [],
+      "expectations": [
+        "Claude runs the keel bootstrap command and gets KEEL_SH and SESSION_DIR",
+        "Claude classifies the task severity as 'trivial' and runs keel.sh init-phases",
+        "Claude does NOT enter a clarify or investigate phase",
+        "Claude edits README.md to add the Contributing section"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a new 'logs' subcommand to keel.sh that pretty-prints the last 20 entries from log.jsonl with colorized severity levels",
+      "expected_output": "Keel classifies as small or medium, enters investigate phase to read keel.sh, then plans or implements",
+      "files": [],
+      "expectations": [
+        "Claude runs the keel bootstrap command and gets KEEL_SH and SESSION_DIR",
+        "Claude classifies the task severity and runs keel.sh init-phases",
+        "Claude reads or investigates keel.sh before attempting implementation",
+        "Claude runs keel.sh advance at least once to progress through phases"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Redesign the state management system to use SQLite instead of JSON files, supporting concurrent access from multiple sessions without file locking issues, and migrate existing sessions",
+      "expected_output": "Keel classifies as large, enters clarify phase to ask user questions",
+      "files": [],
+      "expectations": [
+        "Claude runs the keel bootstrap command and gets KEEL_SH and SESSION_DIR",
+        "Claude classifies the task severity as 'large' and runs keel.sh init-phases",
+        "Claude enters a clarify phase and presents questions to the user",
+        "Claude does NOT start implementing before completing the clarify phase"
+      ]
+    }
+  ]
+}
