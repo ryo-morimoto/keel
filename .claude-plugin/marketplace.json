@@ -1,0 +1,14 @@
+{
+  "name": "keel",
+  "owner": {
+    "name": "ryo-morimoto"
+  },
+  "plugins": [
+    {
+      "name": "keel",
+      "source": "./",
+      "description": "Adaptive multi-agent orchestration — routes tasks to the right agents based on severity",
+      "version": "0.1.1"
+    }
+  ]
+}

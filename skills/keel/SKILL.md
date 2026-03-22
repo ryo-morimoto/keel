@@ -1,15 +1,16 @@
 ---
 name: keel
-description: "Multi-agent orchestration: auto-classifies task severity, then runs a gated state machine through clarify → investigate → plan → review (Codex) → implement (Cursor Agent) → verify phases."
-user_invocable: false
+description: "Multi-agent orchestration: auto-classifies task severity, then runs a gated state machine through clarify → investigate → plan → review (Codex) → implement (Cursor Agent) → verify phases. Use this skill for ANY development task — it determines the right workflow automatically."
+compatibility: "Designed for Claude Code, Codex, OpenCode, and Cursor. Currently implements Claude Code hooks; other agents planned."
 ---
 
 # Keel — Adaptive Multi-Agent Orchestration
 
 <!--
-WHY always-on (user_invocable: false):
-  ドッグフーディング優先。全 CC セッションで keel が動作する。
+WHY always-on:
+  ドッグフーディング優先。全セッションで keel が動作する。
   SessionStart で自動初期化、最初の prompt が user_task になる。
+  Agent Skills spec 準拠のため user-invocable は使わず、hooks で always-on を実現。
 
 WHY this architecture:
   - Claude が state を直接触ると忘れて壊れる → hook + keel.sh が管理
@@ -23,42 +24,27 @@ WHY severity classification:
   severity でフェーズリストを動的に決定し、最小フローを適用。
 -->
 
-Always-on orchestration. Sessions auto-created at SessionStart.
-Phase derived from memory (`completed_phases`) — no manual index tracking.
+You are an orchestrator. Every development task goes through keel. Do NOT work on the task directly — follow the keel flow below.
 
-## State Management
+## Bootstrap — Your First Action
 
-State is managed by hooks and `keel.sh`. **DO NOT Read or Write state.json / memory.json directly.**
+When you receive a task, check if hooks already injected a keel session context (look for `⛵ KEEL SESSION` in your context). If yes, skip to **Phase Execution** below.
 
-- SessionStart hook creates/resumes sessions with `oa_session_id`
-- UserPromptSubmit hook derives phase from memory and injects context
-- Phase = first item in `phase_list` not in `completed_phases` (SSOT)
-- Commands are injected each turn — use them as-is
+If no session context is present, bootstrap manually. Run this as a **single Bash command**:
 
-### Commands
+```bash
+KEEL_SH="${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/keel.sh}"; if [ -z "$KEEL_SH" ] || [ ! -f "$KEEL_SH" ]; then for d in "$(pwd)" "$HOME/.claude/plugins/keel" "$HOME/.claude/plugins"/*/; do [ -f "$d/scripts/keel.sh" ] && KEEL_SH="$d/scripts/keel.sh" && break; done; fi; if [ -z "$KEEL_SH" ] || [ ! -f "$KEEL_SH" ]; then for d in "$HOME/.claude/plugins/cache"/*/*; do [ -f "$d/scripts/keel.sh" ] && KEEL_SH="$d/scripts/keel.sh" && break; done; fi; STATE_ROOT="${CLAUDE_PLUGIN_DATA:+$CLAUDE_PLUGIN_DATA/sessions}"; STATE_ROOT="${STATE_ROOT:-$HOME/.local/state/keel}"; PROJECT_KEY=$(echo "$PWD" | sed 's|^/||;s|/|-|g'); SESSION_DIR=$(ls -td "$STATE_ROOT/-$PROJECT_KEY"/*/ 2>/dev/null | head -1 | sed 's|/$||'); if [ -z "$SESSION_DIR" ]; then SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen); SESSION_DIR="$STATE_ROOT/-$PROJECT_KEY/$SESSION_ID"; mkdir -p "$SESSION_DIR"; printf '{"session_id":"%s","oa_session_id":null,"oa_type":"claude-code","project_path":"%s","workspace":"%s","phase_list":[],"severity":null,"status":"running","counters":{"plan_revise":0,"implement_retry":0}}' "$SESSION_ID" "$PWD" "$PWD" > "$SESSION_DIR/state.json"; printf '{"user_task":null,"severity":null,"completed_phases":[],"resolved_requirements":null,"investigation":null,"plan":null,"review":null,"implementation":null,"verification":null}' > "$SESSION_DIR/memory.json"; fi; echo "KEEL_SH=$KEEL_SH"; echo "SESSION_DIR=$SESSION_DIR"; [ -n "$KEEL_SH" ] && bash "$KEEL_SH" status "$SESSION_DIR" || echo "keel.sh not found — use manual flow"
+```
 
-| Action | Command |
-|--------|---------|
-| Set severity + phases | `bash keel.sh init-phases <dir> <severity>` |
-| Complete a phase | `bash keel.sh advance <dir> '<output-json>'` |
-| Jump to a phase | `bash keel.sh jump <dir> <phase> [reset-fields...]` |
-| Increment counter | `bash keel.sh counter <dir> <counter-name>` |
-| Run codex review | `bash keel.sh run-review <dir>` |
-| Run cursor implement | `bash keel.sh run-implement <dir>` |
-| Run in parallel | `bash keel.sh run-parallel <dir> <label1> <cmd1> ...` |
-| Mark session done | `bash keel.sh done <dir>` |
+Save the output values `KEEL_SH` and `SESSION_DIR` — you need them for all subsequent commands.
 
-`advance` merges output JSON into memory, adds current phase to `completed_phases`, and validates gate.
-`jump` removes target phase and all subsequent phases from `completed_phases`.
-`run-review` reads memory, fills codex-review prompt template, runs codex, parses and returns JSON.
-`run-implement` reads memory, fills cursor-implement prompt template, runs agent, parses and returns JSON.
-All temp files use `/tmp/keel-{project}-{session_id_short}-{purpose}.{ext}` — parallel-safe.
+If `keel.sh not found` is shown, you are in an environment without the keel plugin installed. Still follow the severity classification and phase flow below, but skip keel.sh commands and manage state manually.
 
-## Flow
+After bootstrap, proceed with **Severity Classification** (if phase is `pending_classification`) or the current phase shown in status.
 
-### 1. First Prompt → Severity Classification
+## Severity Classification
 
-The first prompt becomes `user_task`. Classify severity via **sub agent** (haiku):
+The user's prompt is the `user_task`. Classify severity via **sub agent** (haiku):
 
 > Classify this development task as one of: trivial, small, medium, large.
 >
@@ -72,100 +58,125 @@ The first prompt becomes `user_task`. Classify severity via **sub agent** (haiku
 >
 > Task: {user_task}
 
-Then run `keel.sh init-phases <dir> <severity>`.
+Then set the user_task in memory and init phases:
 
-### 2. Phase Execution
+```bash
+# Set user_task (only if not already set)
+jq --arg t "<user_task>" '.user_task = $t' "$SESSION_DIR/memory.json" > "$SESSION_DIR/memory.json.tmp" && mv "$SESSION_DIR/memory.json.tmp" "$SESSION_DIR/memory.json"
+# Init phases
+bash "$KEEL_SH" init-phases "$SESSION_DIR" <severity>
+```
 
-Execute the current phase (shown in injected context). Each phase section below specifies what to do and the advance command.
+Then immediately begin the first phase.
+
+## State Management
+
+State is managed by `keel.sh`. **DO NOT Read or Write state.json / memory.json directly** (except for the bootstrap above).
+
+- Phase = first item in `phase_list` not in `completed_phases` (SSOT)
+- Use `keel.sh status <dir>` to check current state
+
+### Commands
+
+| Action | Command |
+|--------|---------|
+| Check status | `bash $KEEL_SH status $SESSION_DIR` |
+| Set severity + phases | `bash $KEEL_SH init-phases $SESSION_DIR <severity>` |
+| Complete a phase | `bash $KEEL_SH advance $SESSION_DIR '<output-json>'` |
+| Jump to a phase | `bash $KEEL_SH jump $SESSION_DIR <phase> [reset-fields...]` |
+| Increment counter | `bash $KEEL_SH counter $SESSION_DIR <counter-name>` |
+| Run codex review | `bash $KEEL_SH run-review $SESSION_DIR` |
+| Run cursor implement | `bash $KEEL_SH run-implement $SESSION_DIR` |
+| Mark session done | `bash $KEEL_SH done $SESSION_DIR` |
+
+`advance` merges output JSON into memory, adds current phase to `completed_phases`, and validates gate.
+`jump` removes target phase and all subsequent phases from `completed_phases`.
+All temp files use `/tmp/keel-{project}-{session_id_short}-{purpose}.{ext}` — parallel-safe.
+
+## Phase Execution
+
+Execute the current phase. Each phase section below specifies what to do and the advance command.
 
 ### clarify
 
 Fill the 5-item checklist via user questions:
 - 目的 / 解かないこと / 制約 / 最低限 / 検証基準
 
-**Advance**: `keel.sh advance <dir> '{"resolved_requirements": {...}}'`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"resolved_requirements": {...}}'`
 
 ### investigate
 
 Delegate to **sub agent** (Explore type).
 
-**Advance**: `keel.sh advance <dir> '{"investigation": {"relevant_files":[...],"patterns":[...],"constraints":[...]}}'`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"investigation": {"relevant_files":[...],"patterns":[...],"constraints":[...]}}'`
 
 ### plan
 
 Generate plan with steps, verification_criteria, files_to_modify.
 
-**Advance**: `keel.sh advance <dir> '{"plan": {"steps":[...],"verification_criteria":[...],"files_to_modify":[...]}}'`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"plan": {"steps":[...],"verification_criteria":[...],"files_to_modify":[...]}}'`
 
 ### ur1 / ur2 / ur3
 
-Present to user, ask approve/feedback. If approve: `keel.sh advance <dir> '{}'`. If feedback: fb_classify → jump.
+Present to user, ask approve/feedback. If approve: advance with `'{}'`. If feedback: fb_classify → jump.
 
 ### review_codex
 
 ```bash
-REVIEW=$(bash keel.sh run-review <dir>)
+REVIEW=$(bash $KEEL_SH run-review $SESSION_DIR)
 ```
 
-`run-review` reads memory, fills the codex-review prompt template, runs codex, parses output. Returns JSON to stdout.
+If it fails (exit 1): do the review yourself.
 
-If it fails (exit 1): do the review yourself (Claude Code).
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"review": '$REVIEW'}'`
 
-**Advance**: `keel.sh advance <dir> '{"review": '$REVIEW'}'`
-
-If verdict is "revise": `keel.sh jump <dir> plan_revise_loop`
+If verdict is "revise": `bash $KEEL_SH jump $SESSION_DIR plan_revise_loop`
 
 ### plan_revise_loop
 
-Revise plan from review issues. `keel.sh counter <dir> plan_revise` first. If >= 3, ask user.
+Revise plan from review issues. `bash $KEEL_SH counter $SESSION_DIR plan_revise` first. If >= 3, ask user.
 
-**Advance**: `keel.sh advance <dir> '{"plan": {revised}}'` then `keel.sh jump <dir> review_codex review`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"plan": {revised}}'` then `bash $KEEL_SH jump $SESSION_DIR review_codex review`
 
 ### implement_cursor
 
 ```bash
-IMPL=$(bash keel.sh run-implement <dir>)
+IMPL=$(bash $KEEL_SH run-implement $SESSION_DIR)
 ```
 
-`run-implement` reads memory, fills the cursor-implement prompt template, runs cursor agent with `--output-format json --trust`, parses output. Returns JSON to stdout.
+If it fails (exit 1): implement yourself.
 
-If it fails (exit 1): implement yourself (Claude Code).
-
-**Advance**: `keel.sh advance <dir> '{"implementation": '$IMPL'}'`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"implementation": '$IMPL'}'`
 
 ### implement_cc
 
-Implement directly as Claude Code.
+Implement directly.
 
-**Advance**: `keel.sh advance <dir> '{"implementation": {"changed_files":[...],"summary":"..."}}'`
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"implementation": {"changed_files":[...],"summary":"..."}}'`
 
 ### verify
 
-Run verification commands as defined in the project's AGENTS.md / CLAUDE.md. Use `run-parallel` when multiple checks apply.
+Run verification commands as defined in the project's AGENTS.md / CLAUDE.md. If pass: advance. If fail: classify errors → jump back.
 
-If pass: advance. If fail: classify errors → jump back.
-
-**Advance**: `keel.sh advance <dir> '{"verification": {"result":"pass|fail","errors":[...]}}'`
-
-### fb_classify
-
-Classify feedback → jump to appropriate phase.
+**Advance**: `bash $KEEL_SH advance $SESSION_DIR '{"verification": {"result":"pass|fail","errors":[...]}}'`
 
 ### done
 
-`keel.sh done <dir>`. Report summary.
+`bash $KEEL_SH done $SESSION_DIR`. Report summary.
 
-## General Rules
+## Rules
 
-- **NEVER** Read or Write state.json / memory.json directly
+- **NEVER** Read or Write state.json / memory.json directly (bootstrap is the only exception)
 - Phase is derived from memory — if memory doesn't reflect work done, the phase resets correctly
 - All external agent calls (Codex, Cursor) go through Bash tool
 - All sub agent calls go through the Agent tool
+- **Do NOT skip phases** — follow the phase list in order
+- **Do NOT work on the task before classifying severity** — classification first, always
 
 ## Parallel Sessions & Workspace
 
 When multiple sessions run in parallel, the second session gets a git worktree to avoid file conflicts.
-The workspace path is shown in the injected context. If a worktree is active:
+The workspace path is shown in status output. If a worktree is active:
 
 - All file reads/writes must target the workspace path
 - `codex exec`: run from the workspace (`cd <workspace> && codex exec ...`)
