@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # harness/run.sh — Main entry point for keel test harness
 #
-# Orchestrates: validate → unit-test → eval → summary
+# Orchestrates: validate → recognition → unit-test → eval → summary
 #
 # Usage:
-#   bash harness/run.sh              # validate + unit-test (fast, no LLM)
+#   bash harness/run.sh              # validate + recognition + unit-test (fast, no LLM eval)
 #   bash harness/run.sh validate     # Format validation only
+#   bash harness/run.sh recognize    # Recognition check only (loads plugin in claude)
 #   bash harness/run.sh test         # Unit tests only
 #   bash harness/run.sh eval         # LLM eval only (claude -p, haiku)
 #   bash harness/run.sh all          # Everything including LLM eval
@@ -27,6 +28,7 @@ STRICT_FLAG=""
 [[ "$MODE" == "--strict" ]] && STRICT_FLAG="--strict" && MODE="default"
 
 VALIDATE_OK=true
+RECOGNIZE_OK=true
 TEST_OK=true
 EVAL_OK=true
 
@@ -36,6 +38,15 @@ run_validate() {
     VALIDATE_OK=true
   else
     VALIDATE_OK=false
+  fi
+}
+
+run_recognize() {
+  echo -e "\n${BOLD}═══ Recognition Check ═══${NC}"
+  if bash "$SCRIPT_DIR/recognition.sh"; then
+    RECOGNIZE_OK=true
+  else
+    RECOGNIZE_OK=false
   fi
 }
 
@@ -58,18 +69,20 @@ run_eval() {
 }
 
 case "$MODE" in
-  validate) run_validate ;;
-  test)     run_test ;;
-  eval)     run_eval ;;
-  default)  run_validate; run_test ;;
-  all)      run_validate; run_test; run_eval ;;
-  *)        echo "Usage: $0 [validate|test|eval|all|--strict]"; exit 1 ;;
+  validate)  run_validate ;;
+  recognize) run_recognize ;;
+  test)      run_test ;;
+  eval)      run_eval ;;
+  default)   run_validate; run_recognize; run_test ;;
+  all)       run_validate; run_recognize; run_test; run_eval ;;
+  *)         echo "Usage: $0 [validate|recognize|test|eval|all|--strict]"; exit 1 ;;
 esac
 
 echo -e "\n${BOLD}═══ Summary ═══${NC}"
 FAILED=false
-$VALIDATE_OK || { echo -e "${RED}Format validation FAILED${NC}"; FAILED=true; }
-$TEST_OK     || { echo -e "${RED}Unit tests FAILED${NC}"; FAILED=true; }
+$VALIDATE_OK   || { echo -e "${RED}Format validation FAILED${NC}"; FAILED=true; }
+$RECOGNIZE_OK  || { echo -e "${RED}Recognition check FAILED${NC}"; FAILED=true; }
+$TEST_OK       || { echo -e "${RED}Unit tests FAILED${NC}"; FAILED=true; }
 [[ "$MODE" == "eval" || "$MODE" == "all" ]] && ! $EVAL_OK && { echo -e "${RED}LLM eval FAILED${NC}"; FAILED=true; }
 
 if ! $FAILED; then
