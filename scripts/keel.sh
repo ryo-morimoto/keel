@@ -29,6 +29,11 @@ else
   STATE_ROOT="$HOME/.local/state/keel"
 fi
 
+# WHY XDG config: phase actions はユーザー設定。state ではなく config に置く。
+# WHY glob match: implement_cc/implement_cursor 等を implement_* で一括指定できる。
+# WHY project override: プロジェクト固有のレビューフローを許容する。
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/keel"
+
 # --- Helpers ---
 
 tmp_path() {
@@ -146,6 +151,100 @@ parse_log_opts() {
   done
 }
 
+# --- Phase Actions ---
+# WHY separate parser: TOML の [[actions]] array of tables だけ対応すれば十分。
+# WHY glob: implement_cc/implement_cursor を implement_* で束ねる。
+# WHY background exec: アクション失敗で advance を止めない。
+
+parse_actions_toml() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  local phase="" command="" when=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"
+    [[ -z "${line// /}" ]] && continue
+    if [[ "$line" == "[[actions]]" ]]; then
+      if [[ -n "$phase" && -n "$command" ]]; then
+        printf '%s\t%s\t%s\n' "$phase" "$command" "$when"
+      fi
+      phase=""; command=""; when=""
+      continue
+    fi
+    local key val
+    key="${line%%=*}"; key="${key// /}"
+    val="${line#*=}"; val="${val# }"; val="${val%% #*}"
+    val="${val#\"}"; val="${val%\"}"
+    case "$key" in
+      phase)   phase="$val" ;;
+      command) command="$val" ;;
+      when)    when="$val" ;;
+    esac
+  done < "$file"
+  if [[ -n "$phase" && -n "$command" ]]; then
+    printf '%s\t%s\t%s\n' "$phase" "$command" "$when"
+  fi
+}
+
+glob_match() {
+  local pattern="$1" value="$2"
+  # shellcheck disable=SC2254
+  case "$value" in $pattern) return 0 ;; esac
+  return 1
+}
+
+run_phase_actions() {
+  local phase="$1"
+  local project_path project_key project_actions_file
+  project_path=$(jq -r '.project_path // ""' "$STATE_FILE" 2>/dev/null)
+  project_key=$(echo "$project_path" | command sed 's|^/||; s|/|-|g')
+  project_actions_file="$CONFIG_DIR/projects/$project_key/actions.toml"
+
+  local -a global_actions=() project_actions=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && global_actions+=("$line")
+  done < <(parse_actions_toml "$CONFIG_DIR/actions.toml")
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && project_actions+=("$line")
+  done < <(parse_actions_toml "$project_actions_file")
+
+  # project actions override global for same phase pattern
+  local -A seen_patterns=()
+  local -a merged_actions=()
+  for entry in "${project_actions[@]+"${project_actions[@]}"}"; do
+    local p; p=$(echo "$entry" | cut -f1)
+    seen_patterns["$p"]=1
+    merged_actions+=("$entry")
+  done
+  for entry in "${global_actions[@]+"${global_actions[@]}"}"; do
+    local p; p=$(echo "$entry" | cut -f1)
+    [[ -n "${seen_patterns[$p]:-}" ]] && continue
+    merged_actions+=("$entry")
+  done
+
+  local output_file
+  output_file=$(tmp_path "$phase" "md")
+  jq -r ".$phase // .plan // .investigation // empty" "$MEMORY_FILE" > "$output_file" 2>/dev/null || true
+
+  for entry in "${merged_actions[@]+"${merged_actions[@]}"}"; do
+    local pat cmd when_field
+    pat=$(echo "$entry" | cut -f1)
+    cmd=$(echo "$entry" | cut -f2)
+    when_field=$(echo "$entry" | cut -f3)
+    # when フィールドは将来拡張用。今は無視。
+    if glob_match "$pat" "$phase"; then
+      (
+        export KEEL_PHASE="$phase"
+        export KEEL_OUTPUT_FILE="$output_file"
+        export KEEL_SESSION_DIR="$SESSION_DIR"
+        export KEEL_PROJECT_PATH="$project_path"
+        eval "$cmd"
+      ) &>/dev/null &
+      disown
+      log_entry "info" "action.fired" "$(jq -cn --arg p "$pat" --arg phase "$phase" '{pattern:$p,phase:$phase}')"
+    fi
+  done
+}
+
 # --- Pre-command validation ---
 
 if [[ "$CMD" != "logs" ]]; then
@@ -181,6 +280,7 @@ case "$CMD" in
     jq_write "$MEMORY_FILE" --arg p "$CURRENT_PHASE" '.completed_phases = ((.completed_phases // []) + [$p] | unique)'
     NEXT_PHASE=$(derive_phase)
     log_entry "info" "phase.advance" "$(jq -cn --arg from "$CURRENT_PHASE" --arg to "$NEXT_PHASE" '{from:$from,to:$to}')"
+    run_phase_actions "$CURRENT_PHASE"
     echo "Advanced to phase: $NEXT_PHASE ($(jq -r '.completed_phases | length' "$MEMORY_FILE")/$(jq -r '.phase_list | length' "$STATE_FILE"))"
     ;;
 
