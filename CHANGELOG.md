@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.2...keel-v0.5.0) (2026-03-31)
+
+
+### Features
+
+* accept task as skill argument via $ARGUMENTS ([2c6d844](https://github.com/ryo-morimoto/keel/commit/2c6d844a838a8c7346f841395252bd9a4e422bba))
+
+
+### Bug Fixes
+
+* remove hooks wrapper object for correct auto-discovery format ([054b064](https://github.com/ryo-morimoto/keel/commit/054b064db08f048ff17185b9cbef34ffd4049663))
+
 ## [0.4.2](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.1...keel-v0.4.2) (2026-03-31)
 
 
