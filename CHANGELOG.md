@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.3.1...keel-v0.4.0) (2026-03-31)
+
+
+### Features
+
+* add XDG-based phase actions for local code review workflows ([3f03675](https://github.com/ryo-morimoto/keel/commit/3f03675c5750ad48b0bce896ba72727575a1eb46))
+
+
+### Bug Fixes
+
+* move state file protection from PostToolUse to PreToolUse ([01e9ac0](https://github.com/ryo-morimoto/keel/commit/01e9ac08b6c38bb1fbc0f07d6b26db9d7ec94a92))
+* UserPromptSubmit hook not firing due to empty matcher ([d6a6320](https://github.com/ryo-morimoto/keel/commit/d6a6320ba347a812293453007314865ddc3603ea))
+
 ## [0.3.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.3.0...keel-v0.3.1) (2026-03-22)
 
 
