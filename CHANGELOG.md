@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.1...keel-v0.4.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* make keel skill user-invocable ([4cc68b6](https://github.com/ryo-morimoto/keel/commit/4cc68b619bd4c08c5cb46a0e5bf17cba500f1f5c))
+
 ## [0.4.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.0...keel-v0.4.1) (2026-03-31)
 
 
