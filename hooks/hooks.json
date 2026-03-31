@@ -1,50 +1,52 @@
 {
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-session-start.mjs\"",
-          "timeout": 5000
-        }
-      ]
-    }
-  ],
-  "PreToolUse": [
-    {
-      "matcher": "Read|Write|Edit",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-pre-tool-use.mjs\"",
-          "timeout": 3000
-        }
-      ]
-    }
-  ],
-  "UserPromptSubmit": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-prompt-submit.mjs\"",
-          "timeout": 3000
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-stop.mjs\"",
-          "timeout": 5000
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-session-start.mjs\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-pre-tool-use.mjs\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-prompt-submit.mjs\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on-stop.mjs\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
 }
