@@ -2,7 +2,7 @@
 name: keel
 description: "Multi-agent orchestration: auto-classifies task severity, then runs a gated state machine through clarify → investigate → plan → review (Codex) → implement (Cursor Agent) → verify phases."
 compatibility: "Designed for Claude Code, Codex, OpenCode, and Cursor. Currently implements Claude Code hooks; other agents planned."
-user-invocable: false
+user-invocable: true
 ---
 
 # Keel — Adaptive Multi-Agent Orchestration
