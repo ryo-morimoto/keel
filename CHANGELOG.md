@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.5.0...keel-v0.5.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* restore hooks wrapper and sync marketplace version ([b6e6870](https://github.com/ryo-morimoto/keel/commit/b6e6870b6b4c1b6709ac3b3685499fb953d65497))
+
 ## [0.5.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.2...keel-v0.5.0) (2026-03-31)
 
 
