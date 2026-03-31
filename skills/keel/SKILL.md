@@ -28,6 +28,14 @@ WHY severity classification:
 Always-on orchestration. Sessions auto-created at SessionStart.
 Phase derived from memory (`completed_phases`) — no manual index tracking.
 
+## Arguments
+
+Task: $ARGUMENTS
+
+If a task is shown above, use it as `user_task` and immediately proceed to severity classification.
+Do NOT ask the user to describe the task — it was already provided via the skill invocation.
+If no task is shown (blank), wait for the first user prompt as usual.
+
 ## State Management
 
 State is managed by hooks and `keel.sh`. **DO NOT Read or Write state.json / memory.json directly.**
@@ -58,9 +66,11 @@ All temp files use `/tmp/keel-{project}-{session_id_short}-{purpose}.{ext}` — 
 
 ## Flow
 
-### 1. First Prompt → Severity Classification
+### 1. Task Capture → Severity Classification
 
-The first prompt becomes `user_task`. Classify severity via **sub agent** (haiku):
+If `$ARGUMENTS` was provided, use it as `user_task`. Otherwise, the first prompt becomes `user_task`.
+
+Classify severity via **sub agent** (haiku):
 
 > Classify this development task as one of: trivial, small, medium, large.
 >
