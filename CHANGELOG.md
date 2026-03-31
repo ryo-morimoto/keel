@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.4.0...keel-v0.4.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* remove explicit hooks field to avoid duplicate load ([53d1f3e](https://github.com/ryo-morimoto/keel/commit/53d1f3eed46f65739dbd54a6c58c3218fc601708))
+
 ## [0.4.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.3.1...keel-v0.4.0) (2026-03-31)
 
 
