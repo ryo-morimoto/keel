@@ -1,6 +1,5 @@
 {
   "name": "keel",
-  "version": "0.5.1",
   "description": "Adaptive multi-agent orchestration — routes tasks to the right agents based on severity",
   "author": {
     "name": "ryo-morimoto"
