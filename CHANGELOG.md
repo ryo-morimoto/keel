@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/ryo-morimoto/keel/compare/keel-v0.5.1...keel-v0.6.0) (2026-03-31)
+
+
+### Features
+
+* add plugin recognition check via debug log analysis ([cd3aacb](https://github.com/ryo-morimoto/keel/commit/cd3aacbb1eae3fd6fbd61828024e0ebce7952bbb))
+
 ## [0.5.1](https://github.com/ryo-morimoto/keel/compare/keel-v0.5.0...keel-v0.5.1) (2026-03-31)
 
 
